@@ -3,10 +3,7 @@ package me.ketian.handcalc;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 
 /**
  * Created by Ketian on 11/8/14.
@@ -86,22 +83,21 @@ public class PaintFrame extends JFrame{
         add(buttonsPanel);
         add(inputPanel);
 
-        setFocusable(true);
-        addKeyListener(new KeyAdapter() {
+        buttonsPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("S"),
+                "pressed");
+        buttonsPanel.getActionMap().put("pressed", new AbstractAction() {
             @Override
-            public void keyPressed(KeyEvent e) {
-                // System.out.println("Key pressed!");
-                // System.out.println(e.getKeyChar());
-                if (e.getKeyChar() == 's') {
-                    float[][] data = inputPanel.getConvData();
-                    for (int i = 0; i < inputPanel.ROW; ++i) {
-                        for (int j = 0; j < inputPanel.COL; ++j)
-                            System.out.print(Integer.toString((int)data[j][i]) + "\t");
-                        System.out.println();
-                    }
+            public void actionPerformed(ActionEvent e) {
 
-                    inputPanel.resetData();
+                 System.out.println("Key S pressed!");
+                float[][] data = inputPanel.getConvData();
+                for (int i = 0; i < inputPanel.ROW; ++i) {
+                    for (int j = 0; j < inputPanel.COL; ++j)
+                        System.out.print(Integer.toString((int) data[j][i]) + "\t");
+                    System.out.println();
                 }
+
+                inputPanel.resetData();
             }
         });
 
