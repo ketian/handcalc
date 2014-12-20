@@ -1,5 +1,7 @@
 package me.ketian.handcalc;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
@@ -15,8 +17,19 @@ public class MainFrame extends JFrame {
 
     private boolean leftPanelFocused = true;
     private StringBuffer eq = new StringBuffer();
-    private double answer;
+    private String answer;
     private NeuralNetwork nn = new NeuralNetwork();
+
+    private void compute() {
+        ScriptEngineManager manager = new ScriptEngineManager();
+        ScriptEngine engine = manager.getEngineByName("js");
+        try {
+            Object result = engine.eval(eq.toString());
+            answer = result.toString();
+        } catch (Exception ex) {
+            answer = "ERROR";
+        }
+    }
 
     public MainFrame() {
 
@@ -98,8 +111,16 @@ public class MainFrame extends JFrame {
         inputPanels.getActionMap().put("compute", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // TODO
-                // System.out.println("Enter!");
+                compute();
+                ansText.setText(answer);
+            }
+        });
+
+        eqButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                compute();
+                ansText.setText(answer);
             }
         });
 

@@ -70,9 +70,11 @@ public class NeuralNetwork {
             for (int j = 0; j < HIDDEN_SIZE; ++j)
                 scores[i] += features[j] * w2[i][j];
             if (scores[i] > maxScore) {
+                if (predict == 1 && (i == 10 || i == 11) && maxScore+5>scores[i]) continue; // Dirty Work
                 maxScore = scores[i];
                 predict = i;
             }
+            // if (i == 1 || i == 10 || i == 11) System.out.println(scores[i]);
         }
 
         switch (predict) {
