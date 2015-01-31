@@ -3,6 +3,10 @@ package me.ketian.handcalc;
 import com.jmatio.io.MatFileReader;
 import com.jmatio.types.MLDouble;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Created by Ketian on 12/19/14.
  */
@@ -18,9 +22,9 @@ public class NeuralNetwork {
     final int TOTAL_CLASSES = 16;
     /// ()+-*/
 
-    double [][] w1 = new double[HIDDEN_SIZE][VISIBLE_SIZE];
-    double [] b1 = new double[HIDDEN_SIZE];
-    double [][] w2 = new double[TOTAL_CLASSES][HIDDEN_SIZE];
+    private int predict;
+    private double [][] w1 = new double[HIDDEN_SIZE][VISIBLE_SIZE+1];
+    private double [][] w2 = new double[TOTAL_CLASSES][HIDDEN_SIZE];
 
     public NeuralNetwork() {
         try {
@@ -31,7 +35,7 @@ public class NeuralNetwork {
                 for (int row = 0; row < HIDDEN_SIZE; ++row)
                     w1[row][col] = matOptTheta.get(col*HIDDEN_SIZE + row);
             for (int i = 0; i < HIDDEN_SIZE; ++i)
-                b1[i] = matOptTheta.get(2*HIDDEN_SIZE*VISIBLE_SIZE + i);
+                w1[i][VISIBLE_SIZE] = matOptTheta.get(2*HIDDEN_SIZE*VISIBLE_SIZE + i);
 
             reader = new MatFileReader(softmaxParamFile);
             matOptTheta = (MLDouble)reader.getMLArray("optTheta");
@@ -46,21 +50,72 @@ public class NeuralNetwork {
     }
 
     public char predict(float[][] data) {
-        char ans = '#';
-        double [] img = new double[IMG_HEIGHT*IMG_WIDTH];
+        long start = System.currentTimeMillis();
 
+        char ans = '#';
+        double [] img = new double[VISIBLE_SIZE+1];
+
+        // initialize
         for (int i = 0; i < IMG_WIDTH; ++i)
             for (int j = 0; j < IMG_HEIGHT; ++j)
                 img[j*IMG_WIDTH + i] = data[j][i]/255.0;
+        img[VISIBLE_SIZE] = 1;
+/*
+// parallel implementation
+        double [] features = new double[HIDDEN_SIZE];
+        try {
+            ExecutorService executor = Executors.newFixedThreadPool(8);
+            for (int i = 0; i < HIDDEN_SIZE; ++i) {
+                Runnable worker = new DotProducer(i, VISIBLE_SIZE+1, w1[i], img, features, true);
+                executor.execute(worker);
+            }
+            executor.shutdown();
+            executor.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (Exception ex) {
+            System.out.println("Error during computing");
+            return '#';
+        }
+
+        double [] scores = new double[TOTAL_CLASSES];
+        try {
+            ExecutorService executor = Executors.newFixedThreadPool(8);
+            for (int i = 0; i < TOTAL_CLASSES; ++i) {
+                Runnable worker = new DotProducer(i, HIDDEN_SIZE, features, w2[i], scores, false);
+                executor.execute(worker);
+            }
+            executor.shutdown();
+            executor.awaitTermination(1, TimeUnit.SECONDS);
+            predict = -1;
+            double maxScore = -1;
+            for (int i = 0; i < TOTAL_CLASSES; ++i) {
+                if (scores[i] > maxScore) {
+                    if (predict == 1 && (i == 10 || i == 11) && maxScore+5>scores[i]) continue; // Dirty Work
+                    maxScore = scores[i];
+                    predict = i;
+                }
+                // if (i == 1 || i == 10 || i == 11) System.out.println(scores[i]);
+            }
+        } catch (Exception ex) {
+            System.out.println("Error during computing");
+            return '#';
+        }
+*/
+
+// not parallel implementation
 
         double [] features = new double[HIDDEN_SIZE];
+
         for (int i = 0; i < HIDDEN_SIZE; ++i) {
             features[i] = 0;
-            for (int j = 0; j < VISIBLE_SIZE; ++j)
+            for (int j = 0; j <= VISIBLE_SIZE; ++j)
                 features[i] += w1[i][j]*img[j];
-            features[i] += b1[i];
             features[i] = sigmoid(features[i]);
         }
+
+//        for (int i = 0; i < HIDDEN_SIZE; ++i) {
+//            System.out.println(features[i]);
+//            System.out.println(features2[i]);
+//        }
 
         double [] scores = new double[TOTAL_CLASSES];
         int predict = -1;
@@ -76,6 +131,11 @@ public class NeuralNetwork {
             }
             // if (i == 1 || i == 10 || i == 11) System.out.println(scores[i]);
         }
+
+//        for (int i = 0; i< TOTAL_CLASSES; ++i) {
+//            System.out.println(scores[i]);
+//            System.out.println(scores2[i]);
+//        }
 
         switch (predict) {
             case 0: ans = '0'; break;
@@ -95,6 +155,9 @@ public class NeuralNetwork {
             case 14: ans = '*'; break;
             case 15: ans = '/'; break;
         }
+
+//        long end = System.currentTimeMillis();
+//        System.out.println(end-start);
 
         return ans;
     }
